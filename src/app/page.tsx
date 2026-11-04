@@ -13,7 +13,10 @@ export default function Page() {
 
   return (
     <div className="app">
-      <TopBar />
+      <TopBar
+  onSave={s.saveNow}
+  saveStatus={s.saveStatus}
+/>
 
       <Toolbar
         canUndo={s.canUndo}
@@ -46,6 +49,10 @@ export default function Page() {
         onStartEdit={s.startEdit}
         onDraftChange={s.setDraft}
             onFill={s.fillCells}
+
+              // New props
+  rowCount={s.rowCount}
+  addRows={s.addRows}
       />
 
      <SheetTabs

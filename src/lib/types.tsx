@@ -23,4 +23,5 @@ export interface Worksheet {
   id: string;
   name: string;
   data: SheetState;
+  rowCount: number;
 }

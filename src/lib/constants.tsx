@@ -1,5 +1,9 @@
+
 export const COLS = 26;
 export const ROWS = 100;
+export const INITIAL_ROWS = 100;
+export const ROWS_INCREMENT = 100;
+export const MAX_ROWS = 10000;
 
 export const MENUS: string[] = [
   'File', 'Edit', 'View', 'Insert', 'Format',
@@ -10,3 +14,5 @@ export const ZOOM_LEVELS: number[] = [200, 150, 125, 100, 90, 80, 70, 60, 50, 40
 
 export const colName = (i: number): string => String.fromCharCode(65 + i);
 export const keyOf = (r: number, c: number): string => `${r},${c}`;
+
+

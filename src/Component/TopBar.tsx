@@ -2,9 +2,13 @@
 
 import { useState } from 'react';
 import type { ChangeEvent } from 'react';
-import { MENUS } from '../lib/constants';
 
-export default function TopBar() {
+interface TopBarProps {
+  onSave: () => void;
+  saveStatus: 'saved' | 'saving' | 'failed';
+}
+
+export default function TopBar({ onSave, saveStatus }: TopBarProps) {
   const [title, setTitle] = useState<string>('Untitled spreadsheet');
 
   const handleTitleChange = (e: ChangeEvent<HTMLInputElement>): void => {
@@ -21,10 +25,19 @@ export default function TopBar() {
           value={title}
           onChange={handleTitleChange}
         />
-      
       </div>
 
       <div className="top-actions">
+        <button type="button" className="save-btn" onClick={onSave}>
+          Save
+        </button>
+
+          <span>
+    {saveStatus === 'saved' ? 'Saved' :
+     saveStatus === 'saving' ? 'Saving...' :
+     'Save failed'}
+  </span>
+
         <button type="button" className="share-btn">Share</button>
         <div className="avatar">A</div>
       </div>
