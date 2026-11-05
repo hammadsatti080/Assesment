@@ -24,7 +24,7 @@ import type {
 
 export type SaveStatus = 'saved' | 'saving' | 'failed';
 
-const SHEET_ID = 'budget';
+const LOCAL_STORAGE_SHEETS_KEY = 'app_sheets_data';
 
 const EMPTY_SHEET: SheetState = {
   data: {},
@@ -96,6 +96,7 @@ export function useSheet(): UseSheetReturn {
   ]);
 
   const [activeSheetId, setActiveSheetId] = useState('sheet1');
+  const [loaded, setLoaded] = useState(false); // Track localStorage hydration
 
   const activeSheet = sheets.find(
     (item) => item.id === activeSheetId
@@ -123,17 +124,9 @@ export function useSheet(): UseSheetReturn {
 
   const [zoom, setZoom] = useState(100);
 
-  const [loaded, setLoaded] = useState(false);
-
   const [saveStatus, setSaveStatus] = useState<SaveStatus>('saved');
 
   const gridRef = useRef<HTMLDivElement>(null);
-
-  /* ---------- SAVE REFS ---------- */
-
-  const latest = useRef<SheetState>(EMPTY_SHEET);
-  const inFlight = useRef(false);
-  const dirty = useRef(false);
 
   const key = keyOf(sel.r, sel.c);
 
@@ -151,6 +144,40 @@ export function useSheet(): UseSheetReturn {
   const refocus = (): void => {
     gridRef.current?.focus();
   };
+
+  /* ---------- LOAD FROM LOCALSTORAGE ON MOUNT ---------- */
+
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem(LOCAL_STORAGE_SHEETS_KEY);
+      if (saved) {
+        const parsed = JSON.parse(saved) as Worksheet[];
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          setSheets(parsed);
+          setActiveSheetId(parsed[0].id);
+        }
+      }
+    } catch (err) {
+      console.error('Error reading from localStorage:', err);
+    } finally {
+      setLoaded(true); // Mark as loaded so auto-save can safely activate
+    }
+  }, []);
+
+  /* ---------- AUTO-SAVE TO LOCALSTORAGE ---------- */
+
+  useEffect(() => {
+    if (!loaded) return; // Prevent overwriting storage with default state on initial mount
+
+    try {
+      setSaveStatus('saving');
+      localStorage.setItem(LOCAL_STORAGE_SHEETS_KEY, JSON.stringify(sheets));
+      setSaveStatus('saved');
+    } catch (err) {
+      console.error('Error saving to localStorage:', err);
+      setSaveStatus('failed');
+    }
+  }, [sheets, loaded]);
 
   /* ---------- ADD NEW SHEET ---------- */
 
@@ -215,134 +242,24 @@ export function useSheet(): UseSheetReturn {
     );
   };
 
-  /* ---------- LOAD ---------- */
-
-  useEffect(() => {
-
-    fetch(`/api/sheets/${SHEET_ID}`)
-      .then(async (r) => {
-
-        if (r.status === 404) {
-          return EMPTY_SHEET;
-        }
-
-        if (!r.ok) {
-          throw new Error('load failed');
-        }
-
-        return (await r.json()) as SheetState;
-      })
-      .then((saved) => {
-
-        latest.current = saved;
-
-        setSheets((prev) =>
-          prev.map((item) =>
-            item.id === 'sheet1'
-              ? {
-                  ...item,
-                  data: saved
-                }
-              : item
-          )
-        );
-
-        setLoaded(true);
-      })
-      .catch((err) => {
-        console.error(err);
-      });
-
-  }, []);
-
-  /* ---------- SAVE ---------- */
-
-  const flush = async (): Promise<void> => {
-
-    if (inFlight.current) return;
-
-    inFlight.current = true;
-
-    while (dirty.current) {
-
-      dirty.current = false;
-
-      setSaveStatus('saving');
-
-      try {
-
-        const res = await fetch(`/api/sheets/${SHEET_ID}`, {
-          method: 'PUT',
-
-          headers: {
-            'Content-Type': 'application/json'
-          },
-
-          body: JSON.stringify(latest.current)
-        });
-
-        if (!res.ok) {
-          throw new Error('save failed');
-        }
-
-        if (!dirty.current) {
-          setSaveStatus('saved');
-        }
-
-      } catch {
-
-        dirty.current = true;
-
-        setSaveStatus('failed');
-
-        break;
-      }
-    }
-
-    inFlight.current = false;
-  };
+  /* ---------- SAVE HANDLERS ---------- */
 
   const retrySave = (): void => {
-
-    dirty.current = true;
-
-    void flush();
+    try {
+      setSaveStatus('saving');
+      localStorage.setItem(LOCAL_STORAGE_SHEETS_KEY, JSON.stringify(sheets));
+      setSaveStatus('saved');
+    } catch {
+      setSaveStatus('failed');
+    }
   };
 
   const saveNow = (): void => {
-  if (editing) {
-    commit();
-  }
-
-  latest.current = sheet;
-  dirty.current = true;
-  void flush();
-};
-
-/*const saveNow = (): void => {
-  latest.current = sheet;
-  dirty.current = true;
-  void flush();
-};
-*/
-
-  /* ---------- AUTO SAVE ---------- */
-
-  useEffect(() => {
-
-    if (!loaded || sheet === latest.current) return;
-
-    latest.current = sheet;
-
-    dirty.current = true;
-
-    const t = setTimeout(() => {
-      void flush();
-    }, 400);
-
-    return () => clearTimeout(t);
-
-  }, [sheet, loaded]);
+    if (editing) {
+      commit();
+    }
+    retrySave();
+  };
 
   /* ---------- HISTORY / APPLY CHANGE ---------- */
 

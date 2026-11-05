@@ -7,6 +7,7 @@ import FormulaBar from '../Component/FormulaBar';
 import Grid from '../Component/Grid';
 import SheetTabs from '../Component/SheetTabs';
 import { useSheet } from '../hooks/useSheet';
+import SummaryDashboard from '../Component/SummaryDashboard';
 
 export default function Page() {
   const s = useSheet();
@@ -55,12 +56,18 @@ export default function Page() {
   addRows={s.addRows}
       />
 
+<SummaryDashboard
+  sheet={s.sheet}
+  rowCount={s.rowCount}
+/>
      <SheetTabs
   sheets={s.sheets}
   activeSheetId={s.activeSheetId}
   onAddSheet={s.addSheet}
   onSelectSheet={s.selectSheet}
 />
+
+
     </div>
   );
 }

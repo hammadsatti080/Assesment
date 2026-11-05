@@ -1,4 +1,7 @@
 
+
+
+
 import type { CSSProperties } from 'react';
 import type { CellStyle } from '../lib/types';
 
@@ -40,10 +43,39 @@ export default function Cell({
   onFillStart,
   onFillEnter,
 }: CellProps) {
+
+  // 1) Check karein ke value percentage hai ya nahi
+  const stringVal = typeof value === 'string' ? value.trim() : String(value);
+  const isPercentage = stringVal.endsWith('%');
+  const numericVal = isPercentage ? parseFloat(stringVal.replace('%', '')) : NaN;
+
+  // 2) Range ke hisaab se 3 alag colors define karein
+  const percentageStyle: CSSProperties = {};
+  
+  if (isPercentage && !isNaN(numericVal)) {
+    if (numericVal <= 50) {
+      // 0 se 50 tak (Soft Yellow / Orange)
+      percentageStyle.backgroundColor = '#fef08a'; 
+      percentageStyle.color = '#854d0e';
+    } else if (numericVal > 50 && numericVal <= 80) {
+      // 50 se 80 tak (Soft Blue)
+      percentageStyle.backgroundColor = '#e0f2fe'; 
+      percentageStyle.color = '#0369a1';
+    } else {
+      // 80 se above (Soft Green)
+      percentageStyle.backgroundColor = '#dcfce7'; 
+      percentageStyle.color = '#166534';
+    }
+  }
+
+ const shouldAlignRight = isNumber || isPercentage; // <-- Yeh line upar add karein
+  
   const textStyle: CSSProperties = {
     fontWeight: style.bold ? 700 : 400,
     fontStyle: style.italic ? 'italic' : 'normal',
     textDecoration: style.underline ? 'underline' : 'none',
+    textAlign: shouldAlignRight ? 'right' : 'left', // <-- Yeh line add karni hai
+    ...percentageStyle,
   };
 
   const classes = [
@@ -59,7 +91,11 @@ export default function Cell({
   return (
     <td
       className={classes}
-      style={{ ...textStyle, position: 'relative' }}
+      style={{ 
+        ...textStyle, 
+        position: 'relative',
+        backgroundColor: percentageStyle.backgroundColor || undefined 
+      }}
       onClick={onClick}
       onDoubleClick={onDoubleClick}
       onMouseEnter={() => onFillEnter(row, col)}

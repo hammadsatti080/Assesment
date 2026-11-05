@@ -1,16 +1,4 @@
-/*
-export default function SheetTabs() {
-  return (
-    <footer className="tabs">
-      <button className="add-sheet">＋</button>
-      <button className="add-sheet">☰</button>
-      <div className="sheet-tab">
-        Sheet1 <span className="caret">▾</span>
-      </div>
-    </footer>
-  );
-}
-  */
+
 
 interface SheetTabsProps {
   sheets: { id: string; name: string }[];
